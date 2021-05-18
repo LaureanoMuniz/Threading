@@ -26,7 +26,10 @@ class HashMapConcurrente {
 
  private:
     ListaAtomica<hashMapPair> *tabla[HashMapConcurrente::cantLetras];
-
+    
+    //Esto se puede hacer?
+    std::mutex letraMutex[cantLetras];
+    
     static unsigned int hashIndex(std::string clave);
 };
 

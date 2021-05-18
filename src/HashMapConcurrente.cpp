@@ -19,15 +19,49 @@ unsigned int HashMapConcurrente::hashIndex(std::string clave) {
 }
 
 void HashMapConcurrente::incrementar(std::string clave) {
-    // Completar (Ejercicio 2)
+    unsigned int index = hashIndex(clave);
+    bool agregue = false;
+
+    this->letraMutex[index].lock();
+    
+    ListaAtomica<hashMapPair>::iterator it = this->tabla[index]->begin(); 
+    for(; it != this->tabla[index]->end(); ++(it)){
+        if((*it).first == clave){
+            (*it).second++;
+            agregue = true;
+        }
+    }
+    if(!agregue){
+        this->tabla[index]->insertar({clave,1});
+    }
+
+    this->letraMutex[index].unlock();
 }
 
 std::vector<std::string> HashMapConcurrente::claves() {
-    // Completar (Ejercicio 2)
+    std::vector <std::string> clavesADevolver;
+
+    for(int letra = 0; letra < cantLetras; letra++){
+        ListaAtomica<hashMapPair>::iterator it = this->tabla[letra]->begin(); 
+        for(; it != this->tabla[letra]->end(); ++(it)){
+            clavesADevolver.push_back((*it).first);
+        }
+    }
+    return clavesADevolver;
 }
 
 unsigned int HashMapConcurrente::valor(std::string clave) {
-    // Completar (Ejercicio 2)
+    int index = hashIndex(clave);
+    ListaAtomica<hashMapPair>::iterator it = this->tabla[index]->begin();
+    int respuesta = 0;
+
+    for(; it != this->tabla[index]->end(); ++(it)){
+        if((*it).first == clave){
+            respuesta = (*it).second;
+        }
+    }
+
+    return respuesta; 
 }
 
 hashMapPair HashMapConcurrente::maximo() {
@@ -35,6 +69,7 @@ hashMapPair HashMapConcurrente::maximo() {
     max->second = 0;
 
     for (unsigned int index = 0; index < HashMapConcurrente::cantLetras; index++) {
+        this->letraMutex[index].lock();
         for (auto &p : *tabla[index]) {
             if (p.second > max->second) {
                 max->first = p.first;
@@ -42,7 +77,9 @@ hashMapPair HashMapConcurrente::maximo() {
             }
         }
     }
-
+    for(unsigned int index = 0; index < HashMapConcurrente::cantLetras; index++){
+        this->letraMutex[index].unlock();
+    }
     return *max;
 }
 

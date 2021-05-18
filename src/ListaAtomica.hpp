@@ -30,7 +30,14 @@ class ListaAtomica {
     }
 
     void insertar(const T &valor) {
-        // Completar (Ejercicio 1)
+        Nodo* nuevo = new Nodo(valor);
+        // En la primera iteracion nuevo->siguiente  = NULL
+        // Si la lista es vacia y _cabeza sigue siendo NULL, entonces agregamos el nuevo nodo como cabeza
+        // Si la lista no es vacia, se realiza una primer iteracion donde compare and exchange da falso
+        // Y luego se realiza nuevo->siguiente = _cabeza
+        // En caso de que compare and exchange es verdadero, se reemplaza la cabeza por el nuevo nodo
+        // Quizas comernos una iteracion al pedo este mal
+        while(!(_cabeza.compare_exchange_strong(nuevo->_siguiente, nuevo)));
     }
 
     T& operator[](size_t i) const {
