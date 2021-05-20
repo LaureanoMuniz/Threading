@@ -6,7 +6,7 @@
 #include <atomic>
 #include <string>
 #include <vector>
-
+#include <semaphore.h>
 #include "ListaAtomica.hpp"
 
 typedef std::pair<std::string, unsigned int> hashMapPair;
@@ -29,8 +29,11 @@ class HashMapConcurrente {
     
     //Esto se puede hacer?
     std::mutex letraMutex[cantLetras];
-    
     static unsigned int hashIndex(std::string clave);
+    
+    void maximoThread(std::vector <std::atomic<int>> &contadoresPorLetras, hashMapPair &respuesta
+                     ,std::atomic<int> &cantDeThreadTerminados, sem_t &barrera, int cant_threads);
+
 };
 
 #endif  /* HMC_HPP */

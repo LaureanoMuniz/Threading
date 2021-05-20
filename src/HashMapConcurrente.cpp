@@ -5,12 +5,15 @@
 // alternativamente #include <pthread.h>
 #include <iostream>
 #include <fstream>
+// Inclui semaforos WARNING
+#include <semaphore.h>
 
 #include "HashMapConcurrente.hpp"
 
 HashMapConcurrente::HashMapConcurrente() {
     for (unsigned int i = 0; i < HashMapConcurrente::cantLetras; i++) {
-        tabla[i] = new ListaAtomica<hashMapPair>();
+        tabla[i] = new ListaAtomica<hashMapPair>()
+        ;
     }
 }
 
@@ -83,10 +86,69 @@ hashMapPair HashMapConcurrente::maximo() {
     return *max;
 }
 
+void HashMapConcurrente::maximoThread(std::vector <std::atomic<int>> &contadoresPorLetras, hashMapPair &respuesta,
+                                      std::atomic<int> &cantDeThreadTerminados, sem_t &barrera, int cant_threads){
+    std::vector <unsigned int> mutexTomados;
+    for(int i = 0; i < cantLetras; i++){
+        if(contadoresPorLetras[i].fetch_add(1) == 1){
+            //Soy el primer en llegar, tomo el lock
+            mutexTomados.push_back(i);
+            letraMutex[i].lock();
+            //Calculo el maximo
+            for (auto &p : *tabla[i]) {
+                if (p.second > respuesta.second) {
+                    respuesta.first = p.first;
+                    respuesta.second = p.second;
+                }
+            }
+        }
+    }
+
+    //Barrera
+    if(cantDeThreadTerminados.fetch_add(1) == cant_threads){
+        sem_post(&barrera);
+    }
+
+    sem_wait(&barrera);
+    sem_post(&barrera);
+    
+    for(auto letra:mutexTomados){
+        letraMutex[letra].unlock();
+    }
+}
 
 
 hashMapPair HashMapConcurrente::maximoParalelo(unsigned int cant_threads) {
-    // Completar (Ejercicio 3)
+    std::vector<std::thread> threads(cant_threads);
+    
+    sem_t barrera;
+    sem_init(&barrera, 0, 0);
+    
+    std::atomic<int> cantDeThreadTerminados;
+    cantDeThreadTerminados = 0;
+    
+    std::vector<std::atomic<int> > contadoresPorLetra(cantLetras);
+    for(unsigned int i = 0; i < cantLetras; i++){
+        contadoresPorLetra[i] = 0;
+    }
+    std::vector<hashMapPair> respuestaDeThread(cant_threads, {"", 0});
+    hashMapPair *max = new hashMapPair();
+    max->second = 0;
+
+    for(unsigned int i = 0; i < cant_threads; i++){
+        threads[i] = std::thread(&HashMapConcurrente::maximoThread, this, std::ref(contadoresPorLetra), std::ref(respuestaDeThread[i]),
+                                std::ref(cantDeThreadTerminados), std::ref(barrera), cant_threads);
+    }
+    
+    for(unsigned int i = 0; i < cant_threads; i++){
+        threads[i].join();
+        if( max -> second < respuestaDeThread[i].second){
+            max -> first = respuestaDeThread[i].first;
+            max -> second = respuestaDeThread[i].second;
+        }
+    }
+    sem_destroy(&barrera);
+    return *max;
 }
 
 #endif
