@@ -90,7 +90,7 @@ void HashMapConcurrente::maximoThread(std::vector <std::atomic<int>> &contadores
                                       std::atomic<int> &cantDeThreadTerminados, sem_t &barrera, int cant_threads){
     std::vector <unsigned int> mutexTomados;
     for(int i = 0; i < cantLetras; i++){
-        if(contadoresPorLetras[i].fetch_add(1) == 1){
+        if(contadoresPorLetras[i].fetch_add(1) == 0){
             //Soy el primer en llegar, tomo el lock
             mutexTomados.push_back(i);
             letraMutex[i].lock();
@@ -105,10 +105,9 @@ void HashMapConcurrente::maximoThread(std::vector <std::atomic<int>> &contadores
     }
 
     //Barrera
-    if(cantDeThreadTerminados.fetch_add(1) == cant_threads){
+    if(cantDeThreadTerminados.fetch_add(1) == cant_threads - 1){
         sem_post(&barrera);
     }
-
     sem_wait(&barrera);
     sem_post(&barrera);
     

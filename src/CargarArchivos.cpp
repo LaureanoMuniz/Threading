@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
+#include <thread>
 
 #include "CargarArchivos.hpp"
 
@@ -23,7 +24,8 @@ int cargarArchivo(
         return -1;
     }
     while (file >> palabraActual) {
-        // Completar (Ejercicio 4)
+        // Que pasa si dos threads abren el mismo archivo?, Creo que nada
+        hashMap.incrementar(palabraActual);
         cant++;
     }
     // Cierro el archivo.
@@ -36,13 +38,40 @@ int cargarArchivo(
     return cant;
 }
 
+void cargarArchivosPorThread(
+    std::vector<std::string> &filePaths, 
+    HashMapConcurrente &hashMap,
+    std::vector<std::atomic<int> > &contadoresPorArchivo)
+    {
+    int cantFiles = filePaths.size();
+    for(int i = 0; i < cantFiles; i++){
+        if(contadoresPorArchivo[i].fetch_add(1) == 0){
+            cargarArchivo(hashMap,filePaths[i]);
+        }
+    }
+}
 
 void cargarMultiplesArchivos(
     HashMapConcurrente &hashMap,
     unsigned int cantThreads,
     std::vector<std::string> filePaths
 ) {
-    // Completar (Ejercicio 4)
+    int cantFiles = filePaths.size();
+    std::vector<std::atomic<int> > contadoresPorArchivo(cantFiles);
+    for(int i = 0; i < cantFiles; i++){
+        contadoresPorArchivo[i] = 0;
+    }
+
+    std::vector <std::thread> threads(cantThreads);
+    
+    for(auto &t: threads){
+        t = std::thread(cargarArchivosPorThread, std::ref(filePaths), std::ref(hashMap), 
+                        std::ref(contadoresPorArchivo));
+    }
+
+    for(auto &t: threads){
+        t.join();
+    }
 }
 
 #endif

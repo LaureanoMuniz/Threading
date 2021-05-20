@@ -19,4 +19,10 @@ void cargarMultiplesArchivos(
     std::vector<std::string> filePaths
 );
 
+void cargarArchivosPorThread(
+    std::vector<std::string> &filePaths, 
+    HashMapConcurrente &hashMap,
+    std::vector<std::atomic<int> > &contadoresPorArchivo
+);
+
 #endif /* HMC_ARCHIVOS_HPP */
